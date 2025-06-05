@@ -4,19 +4,56 @@
  */
 package view;
 
+import java.io.File;
+import javax.swing.table.DefaultTableModel;
+import model.Song;
+import controller.Playlist;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.imageio.ImageIO;
+import javax.sound.sampled.UnsupportedAudioFileException;
+import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
 /**
  *
  * @author cchin
  */
 public class GUI extends javax.swing.JFrame {
 
+    private ImageIcon playIcon;
+    private ImageIcon pauseIcon;
+
+    Playlist playlist = new Playlist();
+    MusicPlayer player = new MusicPlayer();
+
     /**
      * Creates new form GUI
      */
     public GUI() {
         initComponents();
+        loadIcons();
+        updateTable();
+
+        playButton.setToolTipText("Reproducir");
+        stopButton.setToolTipText("Detener");
+        nextButton.setToolTipText("Siguiente");
+        backButton.setToolTipText("Anterior");
         
+        addButton.setToolTipText("Añadir canción");
+        deleteButton.setToolTipText("Borrar canción");
+        saveButton.setToolTipText("Guardar lista");
+        loadButton.setToolTipText("Cargar lista");
         
+        player.setOnSongFinished(() -> {
+            SwingUtilities.invokeLater(() -> {
+                playButton.setIcon(playIcon);
+                playButton.setToolTipText("Reproducir");
+            });
+        });
     }
 
     /**
@@ -34,18 +71,21 @@ public class GUI extends javax.swing.JFrame {
         backButton = new javax.swing.JButton();
         songProgressBar = new javax.swing.JProgressBar();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
+        songTable = new javax.swing.JTable();
         addButton = new javax.swing.JButton();
         deleteButton = new javax.swing.JButton();
         saveButton = new javax.swing.JButton();
         loadButton = new javax.swing.JButton();
+        stopButton = new javax.swing.JButton();
+        songCover = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         mainPanel.setBackground(new java.awt.Color(204, 255, 255));
 
         playButton.setBackground(new java.awt.Color(0, 204, 102));
-        playButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/playIconx32.png"))); // NOI18N
+        playButton.setForeground(new java.awt.Color(0, 0, 0));
+        playButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/playIcon.png"))); // NOI18N
         playButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 playButtonActionPerformed(evt);
@@ -53,7 +93,7 @@ public class GUI extends javax.swing.JFrame {
         });
 
         nextButton.setBackground(new java.awt.Color(0, 204, 102));
-        nextButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/nextIconx32.png"))); // NOI18N
+        nextButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/nextIcon.png"))); // NOI18N
         nextButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 nextButtonActionPerformed(evt);
@@ -61,27 +101,34 @@ public class GUI extends javax.swing.JFrame {
         });
 
         backButton.setBackground(new java.awt.Color(0, 204, 102));
-        backButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/backIconx32.png"))); // NOI18N
+        backButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/backIcon.png"))); // NOI18N
 
-        jTable1.setBackground(new java.awt.Color(255, 255, 255));
-        jTable1.setForeground(new java.awt.Color(255, 153, 153));
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+        songTable.setBackground(new java.awt.Color(255, 255, 255));
+        songTable.setForeground(new java.awt.Color(255, 153, 153));
+        songTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null}
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
             },
             new String [] {
-                "Nombre", "Artista", "Duración"
+                "Titulo", "Artista", "Duración", "Ruta"
             }
-        ));
-        jScrollPane1.setViewportView(jTable1);
+        ) {
+            boolean[] canEdit = new boolean [] {
+                true, true, true, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        jScrollPane1.setViewportView(songTable);
 
         addButton.setBackground(new java.awt.Color(0, 204, 102));
-        addButton.setForeground(new java.awt.Color(255, 255, 255));
-        addButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/addIcon.png"))); // NOI18N
-        addButton.setText("Añadir canción");
+        addButton.setForeground(new java.awt.Color(0, 0, 0));
+        addButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/addIcon.png"))); // NOI18N
         addButton.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         addButton.setIconTextGap(8);
         addButton.addActionListener(new java.awt.event.ActionListener() {
@@ -91,20 +138,33 @@ public class GUI extends javax.swing.JFrame {
         });
 
         deleteButton.setBackground(new java.awt.Color(0, 204, 102));
-        deleteButton.setForeground(new java.awt.Color(255, 255, 255));
-        deleteButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/deleteIcon.png"))); // NOI18N
-        deleteButton.setText("Borrar canción");
+        deleteButton.setForeground(new java.awt.Color(0, 0, 0));
+        deleteButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/deleteIcon.png"))); // NOI18N
         deleteButton.setIconTextGap(8);
 
         saveButton.setBackground(new java.awt.Color(0, 204, 102));
-        saveButton.setForeground(new java.awt.Color(255, 255, 255));
-        saveButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/saveIcon.png"))); // NOI18N
-        saveButton.setText("Guardar lista");
+        saveButton.setForeground(new java.awt.Color(0, 0, 0));
+        saveButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/saveIcon.png"))); // NOI18N
 
         loadButton.setBackground(new java.awt.Color(0, 204, 102));
-        loadButton.setForeground(new java.awt.Color(255, 255, 255));
-        loadButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/loadIcon.png"))); // NOI18N
-        loadButton.setText("Cargar lista");
+        loadButton.setForeground(new java.awt.Color(0, 0, 0));
+        loadButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/loadIcon.png"))); // NOI18N
+
+        stopButton.setBackground(new java.awt.Color(0, 204, 102));
+        stopButton.setForeground(new java.awt.Color(0, 0, 0));
+        stopButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/stopIcon.png"))); // NOI18N
+        stopButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                stopButtonActionPerformed(evt);
+            }
+        });
+
+        songCover.setBackground(new java.awt.Color(255, 255, 255));
+        songCover.setFont(new java.awt.Font("Segoe UI", 1, 48)); // NOI18N
+        songCover.setForeground(new java.awt.Color(0, 0, 0));
+        songCover.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        songCover.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/musicIcon.png"))); // NOI18N
+        songCover.setBorder(javax.swing.BorderFactory.createEtchedBorder());
 
         javax.swing.GroupLayout mainPanelLayout = new javax.swing.GroupLayout(mainPanel);
         mainPanel.setLayout(mainPanelLayout);
@@ -113,41 +173,48 @@ public class GUI extends javax.swing.JFrame {
             .addGroup(mainPanelLayout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(songProgressBar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jScrollPane1)
                     .addGroup(mainPanelLayout.createSequentialGroup()
                         .addComponent(backButton)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(playButton)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(stopButton)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(nextButton)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 302, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 204, Short.MAX_VALUE)
                         .addComponent(addButton)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(deleteButton)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(saveButton)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(loadButton)))
+                        .addComponent(loadButton))
+                    .addComponent(songCover, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(songProgressBar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 590, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
         mainPanelLayout.setVerticalGroup(
             mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(mainPanelLayout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 520, Short.MAX_VALUE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(deleteButton)
-                        .addComponent(saveButton)
-                        .addComponent(loadButton)
-                        .addComponent(addButton))
-                    .addComponent(backButton)
-                    .addComponent(playButton)
-                    .addComponent(nextButton))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(songProgressBar, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(mainPanelLayout.createSequentialGroup()
+                        .addComponent(songCover, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(playButton)
+                            .addComponent(stopButton)
+                            .addComponent(nextButton)
+                            .addComponent(backButton)
+                            .addComponent(loadButton)
+                            .addComponent(saveButton)
+                            .addComponent(deleteButton)
+                            .addComponent(addButton))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(songProgressBar, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 571, Short.MAX_VALUE))
                 .addContainerGap())
         );
 
@@ -166,7 +233,25 @@ public class GUI extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void playButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_playButtonActionPerformed
-        // TODO add your handling code here:
+        int selectedRow = songTable.getSelectedRow();
+
+        if (selectedRow >= 0) {
+            String filePath = (String) songTable.getValueAt(selectedRow, 3);
+            File songFile = new File(filePath);
+
+            if (playButton.getIcon() == playIcon) {
+                player.play(songFile);
+                playButton.setIcon(pauseIcon);
+                playButton.setToolTipText("Pausar");
+            } else {
+                player.pause();
+                playButton.setIcon(playIcon);
+                playButton.setToolTipText("Reproducir");
+            }
+
+        } else {
+            JOptionPane.showMessageDialog(this, "Seleccione una canción primero.", "Error", JOptionPane.WARNING_MESSAGE);
+        }
     }//GEN-LAST:event_playButtonActionPerformed
 
     private void nextButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_nextButtonActionPerformed
@@ -174,8 +259,37 @@ public class GUI extends javax.swing.JFrame {
     }//GEN-LAST:event_nextButtonActionPerformed
 
     private void addButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addButtonActionPerformed
-        // TODO add your handling code here:
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Selecciones canciones");
+        fileChooser.setMultiSelectionEnabled(true);
+
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Archivo de audio", "mp3", "wav", "acc"));
+
+        int result = fileChooser.showOpenDialog(this);
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File[] selectedFiles = fileChooser.getSelectedFiles();
+
+            for (File file : selectedFiles) {
+                try {
+                    playlist.addSong(file);
+                } catch (UnsupportedAudioFileException ex) {
+                    Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (IOException ex) {
+                    Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+
+            updateTable();
+        }
     }//GEN-LAST:event_addButtonActionPerformed
+
+    private void stopButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_stopButtonActionPerformed
+        player.stop();
+        if (playButton.getIcon() == pauseIcon) {
+            playButton.setIcon(playIcon);
+        }
+    }//GEN-LAST:event_stopButtonActionPerformed
 
     /**
      * @param args the command line arguments
@@ -217,12 +331,45 @@ public class GUI extends javax.swing.JFrame {
     private javax.swing.JButton backButton;
     private javax.swing.JButton deleteButton;
     private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTable jTable1;
     private javax.swing.JButton loadButton;
     private javax.swing.JPanel mainPanel;
     private javax.swing.JButton nextButton;
     private javax.swing.JButton playButton;
     private javax.swing.JButton saveButton;
+    private javax.swing.JLabel songCover;
     private javax.swing.JProgressBar songProgressBar;
+    private javax.swing.JTable songTable;
+    private javax.swing.JButton stopButton;
     // End of variables declaration//GEN-END:variables
+
+    private void updateTable() {
+        DefaultTableModel model = (DefaultTableModel) songTable.getModel();
+        model.setRowCount(0);
+
+        for (Song song : playlist.getSongs()) {
+            model.addRow(new Object[]{
+                song.getTitle(),
+                song.getArtist(),
+                song.getFormattedLength(),
+                song.getFile().getAbsolutePath()
+            });
+        }
+    }
+
+    private void loadIcons() {
+        try {
+            BufferedImage playImage = ImageIO.read(getClass().getResource("/playIcon.png"));
+            BufferedImage pauseImage = ImageIO.read(getClass().getResource("/pauseIcon.png"));
+
+            playIcon = new ImageIcon(playImage.getScaledInstance(32, 32, BufferedImage.SCALE_SMOOTH));
+            pauseIcon = new ImageIcon(pauseImage.getScaledInstance(32, 32, BufferedImage.SCALE_SMOOTH));
+
+            playButton.setIcon(playIcon);
+            playButton.setText("");
+
+        } catch (Exception e) {
+            System.err.println("Error cargando iconos: " + e.getMessage());
+            playButton.setText("Play");
+        }
+    }
 }

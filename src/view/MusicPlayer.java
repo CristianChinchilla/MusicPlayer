@@ -1,114 +1,82 @@
 package view;
 
-import java.util.*;
-import controller.Playlist;
+import java.io.File;
+import java.io.IOException;
+import javax.sound.sampled.*;
+import javax.swing.JOptionPane;
 
 /**
  *
  * @author cchin
  */
 public class MusicPlayer {
-
-    public static void main(String[] args) throws InterruptedException {
-        Playlist playlist = new Playlist();
-        Scanner sc = new Scanner(System.in);
-        String option;
-
-        playlist.precarga();
-
-        do {
-
-            System.out.println("""
-                           -_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-
-                           Ingrese la opción que desea:
-                           
-                           1. Ingresar una canción al final de la lista
-                           2. Ingresar una canción al inicio de la lista
-                           3. Iniciar la reproducción
-                           4. Siguiente canción
-                           5. Anterior canción
-                           6. Eliminar canción
-                           7. Mostar lista de canciones
-                           8. Salir
-                           -_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-
-                           """);
-
-            option = sc.nextLine();
-
-            switch (option) {
-
-                case "1" -> {
-                    String title;
-                    String artist;
-                    int lenght;
-
-                    System.out.print("Ingrese el nombre de la canción: ");
-                    title = sc.nextLine();
-                    System.out.print("Ingrese el nombre del artista: ");
-                    artist = sc.nextLine();
-                    lenght = 6;
-
-                    playlist.addLast(title, artist, lenght);
-                }
-                case "2" -> {
-
-                    String title;
-                    String artist;
-                    int lenght;
-
-                    System.out.print("Ingrese el nombre de la canción: ");
-                    title = sc.nextLine();
-                    System.out.print("Ingrese el nombre del artista: ");
-                    artist = sc.nextLine();
-                    lenght = 6;
-
-                    playlist.addFirst(title, artist, lenght);
-                }
-                case "3" -> {
-                    String setAutoplay;
-                    boolean isAutoplayActive;
-
-                    System.out.println("""
-                                       Desea activar la reproducción automatica:
-                                       
-                                       1. Sí
-                                       2. No
-                                       """);
-
-                    setAutoplay = sc.nextLine();
-
-                    switch (setAutoplay) {
-                        case "1" -> {
-                            isAutoplayActive = true;
-                            playlist.play(isAutoplayActive);
-                        }
-                        case "2" -> {
-                            isAutoplayActive = false;
-                            playlist.play(isAutoplayActive);
-                        }
-                        default -> {
-                            System.out.println("Ingrese una opción valida.");
-                        }
+    private Clip clip;
+    private boolean isPaused = false;
+    private long pausePosition = 0;
+    private File currentFile;
+    private Runnable onSongFinished;
+    
+    public void setOnSongFinished(Runnable callback) {
+        this.onSongFinished = callback;
+    }
+    
+    public void play(File file) {
+        try {
+            
+            if (file.equals(currentFile) && isPaused) {
+                clip.setMicrosecondPosition(pausePosition);
+                clip.start();
+                isPaused = false;
+                return;
+            }
+            
+            resetClip();
+            
+            currentFile = file;
+            
+            AudioInputStream audioStream = AudioSystem.getAudioInputStream(file);
+            clip = AudioSystem.getClip();
+            clip.open(audioStream);
+            
+            clip.addLineListener(event -> {
+                if (event.getType() == LineEvent.Type.STOP && !isPaused) {
+                    resetClip();
+                    if (onSongFinished != null) {
+                        onSongFinished.run();
                     }
                 }
-                case "4" -> {
-                    playlist.hasNext();
-                }
-                case "5" -> {
-                    playlist.hasPrevious();
-                }
-                case "6" -> {
-                    String songName;
-
-                    System.out.println("Ingrese el nombre de la canción que desea eliminar:");
-                    songName = sc.nextLine();
-
-                    playlist.deleteSong(songName);
-                }
-                case "7" -> {
-                    playlist.showPlaylist();
-                }
-            }
-        } while (!"8".equals(option));
+            });
+            
+            clip.start();
+            isPaused = false;
+            
+            
+        } catch (IOException | LineUnavailableException | UnsupportedAudioFileException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al reproducir: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    public void pause() {
+        if (clip != null && clip.isRunning()) {
+            pausePosition = clip.getMicrosecondPosition();
+            clip.stop();
+            isPaused = true;
+        }
+    }
+    
+    public void stop() {
+        resetClip();
+        isPaused = false;
+        pausePosition = 0;
+        currentFile = null;
+    }
+    
+    public void resetClip() {
+        if (clip != null) {
+            clip.stop();
+            clip.close();
+            clip = null;
+        }
     }
 }

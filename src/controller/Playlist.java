@@ -13,18 +13,24 @@ import model.Song;
 public class Playlist {
 
     private List<Song> songs;
-    
+
     public Playlist() {
         this.songs = new ArrayList<>();
     }
-    
+
     public void addSong(File audioFile) throws UnsupportedAudioFileException, IOException {
         Song song = new Song(audioFile);
         songs.add(song);
     }
-    
+
     public List<Song> getSongs() {
         return songs;
+    }
+
+    public void removeSong(int index) {
+        if (index >= 0 && index < songs.size()) {
+            songs.remove(index);
+        }
     }
 
 //    public void precarga() {

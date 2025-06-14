@@ -26,6 +26,8 @@ public class GUI extends javax.swing.JFrame {
 
     private ImageIcon playIcon;
     private ImageIcon pauseIcon;
+    private int currentSongIndex = -1;
+    private Timer progressTimer;
 
     Playlist playlist = new Playlist();
     MusicPlayer player = new MusicPlayer();
@@ -42,12 +44,12 @@ public class GUI extends javax.swing.JFrame {
         stopButton.setToolTipText("Detener");
         nextButton.setToolTipText("Siguiente");
         backButton.setToolTipText("Anterior");
-        
+
         addButton.setToolTipText("Añadir canción");
         deleteButton.setToolTipText("Borrar canción");
         saveButton.setToolTipText("Guardar lista");
         loadButton.setToolTipText("Cargar lista");
-        
+
         player.setOnSongFinished(() -> {
             SwingUtilities.invokeLater(() -> {
                 playButton.setIcon(playIcon);
@@ -102,6 +104,11 @@ public class GUI extends javax.swing.JFrame {
 
         backButton.setBackground(new java.awt.Color(0, 204, 102));
         backButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/backIcon.png"))); // NOI18N
+        backButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                backButtonActionPerformed(evt);
+            }
+        });
 
         songTable.setBackground(new java.awt.Color(255, 255, 255));
         songTable.setForeground(new java.awt.Color(255, 153, 153));
@@ -141,14 +148,29 @@ public class GUI extends javax.swing.JFrame {
         deleteButton.setForeground(new java.awt.Color(0, 0, 0));
         deleteButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/deleteIcon.png"))); // NOI18N
         deleteButton.setIconTextGap(8);
+        deleteButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                deleteButtonActionPerformed(evt);
+            }
+        });
 
         saveButton.setBackground(new java.awt.Color(0, 204, 102));
         saveButton.setForeground(new java.awt.Color(0, 0, 0));
         saveButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/saveIcon.png"))); // NOI18N
+        saveButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                saveButtonActionPerformed(evt);
+            }
+        });
 
         loadButton.setBackground(new java.awt.Color(0, 204, 102));
         loadButton.setForeground(new java.awt.Color(0, 0, 0));
         loadButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/loadIcon.png"))); // NOI18N
+        loadButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                loadButtonActionPerformed(evt);
+            }
+        });
 
         stopButton.setBackground(new java.awt.Color(0, 204, 102));
         stopButton.setForeground(new java.awt.Color(0, 0, 0));
@@ -236,6 +258,7 @@ public class GUI extends javax.swing.JFrame {
         int selectedRow = songTable.getSelectedRow();
 
         if (selectedRow >= 0) {
+            currentSongIndex = selectedRow;
             String filePath = (String) songTable.getValueAt(selectedRow, 3);
             File songFile = new File(filePath);
 
@@ -243,21 +266,36 @@ public class GUI extends javax.swing.JFrame {
                 player.play(songFile);
                 playButton.setIcon(pauseIcon);
                 playButton.setToolTipText("Pausar");
+                progressTimer.start();
             } else {
                 player.pause();
                 playButton.setIcon(playIcon);
                 playButton.setToolTipText("Reproducir");
+                progressTimer.stop();
             }
-
         } else {
             JOptionPane.showMessageDialog(this, "Seleccione una canción primero.", "Error", JOptionPane.WARNING_MESSAGE);
         }
+
     }//GEN-LAST:event_playButtonActionPerformed
 
     private void nextButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_nextButtonActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_nextButtonActionPerformed
+        nextSong();
 
+    }//GEN-LAST:event_nextButtonActionPerformed
+    private void nextSong() {
+        if (playlist.getSongs().isEmpty()) {
+            return;
+        }
+
+        currentSongIndex++;
+        if (currentSongIndex >= playlist.getSongs().size()) {
+            currentSongIndex = 0; // Volver al inicio.
+        }
+
+        songTable.setRowSelectionInterval(currentSongIndex, currentSongIndex);
+        playSelectedSong();
+    }
     private void addButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addButtonActionPerformed
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Selecciones canciones");
@@ -291,6 +329,86 @@ public class GUI extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_stopButtonActionPerformed
 
+    private void backButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_backButtonActionPerformed
+        previousSong();
+    }//GEN-LAST:event_backButtonActionPerformed
+    private void previousSong() {
+        if (playlist.getSongs().isEmpty()) {
+            return;
+        }
+
+        currentSongIndex--;
+        if (currentSongIndex < 0) {
+            currentSongIndex = playlist.getSongs().size() - 1; // Ir al final.
+        }
+
+        songTable.setRowSelectionInterval(currentSongIndex, currentSongIndex);
+        playSelectedSong();
+    }
+    private void deleteButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_deleteButtonActionPerformed
+        int selectedRow = songTable.getSelectedRow();
+
+        if (selectedRow >= 0) {
+            int confirm = JOptionPane.showConfirmDialog(
+                    this,
+                    "¿Está seguro de que desea eliminar esta canción?",
+                    "Confirmar eliminación",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                // Si se está reproduciendo la canción que se va a eliminar.
+                if (selectedRow == currentSongIndex) {
+                    player.stop();
+                    playButton.setIcon(playIcon);
+                    playButton.setToolTipText("Reproducir");
+                    progressTimer.stop();
+                    songProgressBar.setValue(0);
+                    currentSongIndex = -1;
+                }
+
+                playlist.removeSong(selectedRow);
+                if (selectedRow == currentSongIndex) {
+                    currentSongIndex = -1;
+                }else if(selectedRow < currentSongIndex) {
+                    currentSongIndex--;
+                    
+                }
+                if (playlist.getSongs().isEmpty()) {
+                    currentSongIndex = -1;
+                    player.stop();
+                    playButton.setIcon(playIcon);
+                    progressTimer.stop();
+                    songProgressBar.setValue(0);
+                }
+
+                updateTable();
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Seleccione una canción para eliminar.", "Error", JOptionPane.WARNING_MESSAGE);
+        }
+    }//GEN-LAST:event_deleteButtonActionPerformed
+
+    private void saveButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveButtonActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_saveButtonActionPerformed
+
+    private void loadButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadButtonActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_loadButtonActionPerformed
+
+    private void playSelectedSong() {
+        if (currentSongIndex >= 0 && currentSongIndex < playlist.getSongs().size()) {
+            String filePath = (String) songTable.getValueAt(currentSongIndex, 3);
+            File songFile = new File(filePath);
+
+            player.play(songFile);
+            playButton.setIcon(pauseIcon);
+            playButton.setToolTipText("Pausar");
+            progressTimer.start();
+        }
+    }
+
     /**
      * @param args the command line arguments
      */
@@ -305,16 +423,24 @@ public class GUI extends javax.swing.JFrame {
                 if ("Nimbus".equals(info.getName())) {
                     javax.swing.UIManager.setLookAndFeel(info.getClassName());
                     break;
+
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(GUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(GUI.class
+                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
+
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(GUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(GUI.class
+                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
+
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(GUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(GUI.class
+                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
+
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(GUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(GUI.class
+                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
 

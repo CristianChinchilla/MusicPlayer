@@ -10,7 +10,6 @@ import model.Song;
 import controller.Playlist;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -28,6 +27,7 @@ public class GUI extends javax.swing.JFrame {
     private ImageIcon pauseIcon;
     private int currentSongIndex = -1;
     private Timer progressTimer;
+    private boolean autoPlay = true;
 
     Playlist playlist = new Playlist();
     MusicPlayer player = new MusicPlayer();
@@ -40,6 +40,14 @@ public class GUI extends javax.swing.JFrame {
         loadIcons();
         updateTable();
 
+        songProgressBar.setStringPainted(true);
+        songProgressBar.setValue(0);
+        songProgressBar.setString("00:00 / 00:00");
+
+        progressTimer = new Timer(100, e -> {
+            updateProgressBar();
+        });
+
         playButton.setToolTipText("Reproducir");
         stopButton.setToolTipText("Detener");
         nextButton.setToolTipText("Siguiente");
@@ -51,10 +59,17 @@ public class GUI extends javax.swing.JFrame {
         loadButton.setToolTipText("Cargar lista");
 
         player.setOnSongFinished(() -> {
-            SwingUtilities.invokeLater(() -> {
-                playButton.setIcon(playIcon);
-                playButton.setToolTipText("Reproducir");
-            });
+            if (autoPlay) {
+                SwingUtilities.invokeLater(this::nextSong);
+            } else {
+                SwingUtilities.invokeLater(() -> {
+                    playButton.setIcon(playIcon);
+                    playButton.setToolTipText("Reproducir");
+                    progressTimer.stop();
+                    songProgressBar.setValue(100);
+                    songProgressBar.setString(formatTime(player.getTotalLength()) + " / " + formatTime(player.getTotalLength()));
+                });
+            }
         });
     }
 
@@ -80,6 +95,7 @@ public class GUI extends javax.swing.JFrame {
         loadButton = new javax.swing.JButton();
         stopButton = new javax.swing.JButton();
         songCover = new javax.swing.JLabel();
+        autoplayButton = new javax.swing.JToggleButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -188,6 +204,15 @@ public class GUI extends javax.swing.JFrame {
         songCover.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/musicIcon.png"))); // NOI18N
         songCover.setBorder(javax.swing.BorderFactory.createEtchedBorder());
 
+        autoplayButton.setBackground(new java.awt.Color(0, 204, 102));
+        autoplayButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/autoplayIcon.png"))); // NOI18N
+        autoplayButton.setSelected(true);
+        autoplayButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                autoplayButtonActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout mainPanelLayout = new javax.swing.GroupLayout(mainPanel);
         mainPanel.setLayout(mainPanelLayout);
         mainPanelLayout.setHorizontalGroup(
@@ -203,7 +228,9 @@ public class GUI extends javax.swing.JFrame {
                         .addComponent(stopButton)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(nextButton)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 204, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(autoplayButton)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 160, Short.MAX_VALUE)
                         .addComponent(addButton)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(deleteButton)
@@ -211,8 +238,8 @@ public class GUI extends javax.swing.JFrame {
                         .addComponent(saveButton)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(loadButton))
-                    .addComponent(songCover, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(songProgressBar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(songProgressBar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(songCover, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 590, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
@@ -226,14 +253,16 @@ public class GUI extends javax.swing.JFrame {
                         .addComponent(songCover, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(playButton)
-                            .addComponent(stopButton)
-                            .addComponent(nextButton)
-                            .addComponent(backButton)
-                            .addComponent(loadButton)
-                            .addComponent(saveButton)
-                            .addComponent(deleteButton)
-                            .addComponent(addButton))
+                            .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                .addComponent(playButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(stopButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(nextButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(backButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(loadButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(saveButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(deleteButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(addButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(autoplayButton))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(songProgressBar, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 571, Short.MAX_VALUE))
@@ -294,6 +323,7 @@ public class GUI extends javax.swing.JFrame {
         }
 
         songTable.setRowSelectionInterval(currentSongIndex, currentSongIndex);
+        songProgressBar.setValue(0);
         playSelectedSong();
     }
     private void addButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addButtonActionPerformed
@@ -327,6 +357,9 @@ public class GUI extends javax.swing.JFrame {
         if (playButton.getIcon() == pauseIcon) {
             playButton.setIcon(playIcon);
         }
+        progressTimer.stop();
+        songProgressBar.setValue(0);
+        songProgressBar.setString("00:00 / " + formatTime(player.getTotalLength()));
     }//GEN-LAST:event_stopButtonActionPerformed
 
     private void backButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_backButtonActionPerformed
@@ -343,6 +376,7 @@ public class GUI extends javax.swing.JFrame {
         }
 
         songTable.setRowSelectionInterval(currentSongIndex, currentSongIndex);
+        songProgressBar.setValue(0);
         playSelectedSong();
     }
     private void deleteButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_deleteButtonActionPerformed
@@ -370,9 +404,9 @@ public class GUI extends javax.swing.JFrame {
                 playlist.removeSong(selectedRow);
                 if (selectedRow == currentSongIndex) {
                     currentSongIndex = -1;
-                }else if(selectedRow < currentSongIndex) {
+                } else if (selectedRow < currentSongIndex) {
                     currentSongIndex--;
-                    
+
                 }
                 if (playlist.getSongs().isEmpty()) {
                     currentSongIndex = -1;
@@ -397,6 +431,10 @@ public class GUI extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_loadButtonActionPerformed
 
+    private void autoplayButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_autoplayButtonActionPerformed
+        autoPlay = autoplayButton.isSelected();
+    }//GEN-LAST:event_autoplayButtonActionPerformed
+
     private void playSelectedSong() {
         if (currentSongIndex >= 0 && currentSongIndex < playlist.getSongs().size()) {
             String filePath = (String) songTable.getValueAt(currentSongIndex, 3);
@@ -405,7 +443,9 @@ public class GUI extends javax.swing.JFrame {
             player.play(songFile);
             playButton.setIcon(pauseIcon);
             playButton.setToolTipText("Pausar");
-            progressTimer.start();
+            songProgressBar.setValue(0);
+            songProgressBar.setString("00:00 / " + formatTime(player.getTotalLength()));
+            progressTimer.restart();
         }
     }
 
@@ -454,6 +494,7 @@ public class GUI extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton addButton;
+    private javax.swing.JToggleButton autoplayButton;
     private javax.swing.JButton backButton;
     private javax.swing.JButton deleteButton;
     private javax.swing.JScrollPane jScrollPane1;
@@ -498,4 +539,32 @@ public class GUI extends javax.swing.JFrame {
             playButton.setText("Play");
         }
     }
+
+    private void updateProgressBar() {
+        if (player.isPlaying() && currentSongIndex >= 0) {
+            long currentPosition = player.getCurrentPosition();
+            long totalLength = player.getTotalLength();
+
+            if (totalLength > 0) {
+                int progress = (int) ((currentPosition * 100) / totalLength);
+                songProgressBar.setValue(progress);
+
+                String currentTime = formatTime(currentPosition);
+                String totalTime = formatTime(totalLength);
+
+                songProgressBar.setToolTipText(currentTime + " / " + totalTime);
+                songProgressBar.setString(currentTime + " / " + totalTime);
+
+                songProgressBar.repaint();
+            }
+        }
+    }
+
+    private String formatTime(long microseconds) {
+        long seconds = microseconds / 1_000_000;
+        long minutes = seconds / 60;
+        seconds = seconds % 60;
+        return String.format("%02d:%02d", minutes, seconds);
+    }
+
 }

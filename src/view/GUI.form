@@ -54,7 +54,9 @@
                           <Component id="stopButton" min="-2" max="-2" attributes="0"/>
                           <EmptySpace max="-2" attributes="0"/>
                           <Component id="nextButton" min="-2" max="-2" attributes="0"/>
-                          <EmptySpace pref="204" max="32767" attributes="0"/>
+                          <EmptySpace max="-2" attributes="0"/>
+                          <Component id="autoplayButton" min="-2" max="-2" attributes="0"/>
+                          <EmptySpace pref="160" max="32767" attributes="0"/>
                           <Component id="addButton" min="-2" max="-2" attributes="0"/>
                           <EmptySpace max="-2" attributes="0"/>
                           <Component id="deleteButton" min="-2" max="-2" attributes="0"/>
@@ -63,8 +65,8 @@
                           <EmptySpace max="-2" attributes="0"/>
                           <Component id="loadButton" min="-2" max="-2" attributes="0"/>
                       </Group>
-                      <Component id="songCover" max="32767" attributes="0"/>
                       <Component id="songProgressBar" max="32767" attributes="0"/>
+                      <Component id="songCover" alignment="0" max="32767" attributes="0"/>
                   </Group>
                   <EmptySpace max="-2" attributes="0"/>
                   <Component id="jScrollPane1" min="-2" pref="590" max="-2" attributes="0"/>
@@ -81,14 +83,17 @@
                           <Component id="songCover" max="32767" attributes="0"/>
                           <EmptySpace max="-2" attributes="0"/>
                           <Group type="103" groupAlignment="0" attributes="0">
-                              <Component id="playButton" min="-2" max="-2" attributes="0"/>
-                              <Component id="stopButton" min="-2" max="-2" attributes="0"/>
-                              <Component id="nextButton" min="-2" max="-2" attributes="0"/>
-                              <Component id="backButton" min="-2" max="-2" attributes="0"/>
-                              <Component id="loadButton" min="-2" max="-2" attributes="0"/>
-                              <Component id="saveButton" min="-2" max="-2" attributes="0"/>
-                              <Component id="deleteButton" min="-2" max="-2" attributes="0"/>
-                              <Component id="addButton" max="-2" attributes="0"/>
+                              <Group type="103" groupAlignment="0" max="-2" attributes="0">
+                                  <Component id="playButton" max="32767" attributes="0"/>
+                                  <Component id="stopButton" max="32767" attributes="0"/>
+                                  <Component id="nextButton" max="32767" attributes="0"/>
+                                  <Component id="backButton" max="32767" attributes="0"/>
+                                  <Component id="loadButton" max="32767" attributes="0"/>
+                                  <Component id="saveButton" max="32767" attributes="0"/>
+                                  <Component id="deleteButton" max="32767" attributes="0"/>
+                                  <Component id="addButton" max="32767" attributes="0"/>
+                              </Group>
+                              <Component id="autoplayButton" min="-2" max="-2" attributes="0"/>
                           </Group>
                           <EmptySpace max="-2" attributes="0"/>
                           <Component id="songProgressBar" min="-2" pref="20" max="-2" attributes="0"/>
@@ -306,6 +311,20 @@
               </Border>
             </Property>
           </Properties>
+        </Component>
+        <Component class="javax.swing.JToggleButton" name="autoplayButton">
+          <Properties>
+            <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+              <Color blue="66" green="cc" red="0" type="rgb"/>
+            </Property>
+            <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
+              <Image iconType="3" name="/resources/autoplayIcon.png"/>
+            </Property>
+            <Property name="selected" type="boolean" value="true"/>
+          </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="autoplayButtonActionPerformed"/>
+          </Events>
         </Component>
       </SubComponents>
     </Container>

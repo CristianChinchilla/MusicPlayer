@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import javax.sound.sampled.*;
 import javax.swing.JOptionPane;
+import controller.PlayerState;
 
 /**
  *
@@ -12,27 +13,29 @@ import javax.swing.JOptionPane;
 public class MusicPlayer {
 
     private Clip clip;
-    private boolean isPaused = false;
+    private volatile PlayerState state = PlayerState.STOPPED;
     private long pausePosition = 0;
     private File currentFile;
     private Runnable onSongFinished;
+    private final Object lock = new Object();
 
     public void setOnSongFinished(Runnable callback) {
         this.onSongFinished = callback;
     }
 
-    public void play(File file) {
-        try {
+    public void play(File file) throws IOException, LineUnavailableException, UnsupportedAudioFileException {
 
-            if (file.equals(currentFile) && isPaused) {
-                clip.setMicrosecondPosition(pausePosition);
-                clip.start();
-                isPaused = false;
+        synchronized (lock) {
+            
+            //if (state == PlayerState.PLAYING) return;
+
+            if (state == PlayerState.PAUSED && file.equals(currentFile)) {
+                resume();
                 return;
             }
 
             resetClip();
-
+            
             currentFile = file;
 
             AudioInputStream audioStream = AudioSystem.getAudioInputStream(file);
@@ -40,7 +43,7 @@ public class MusicPlayer {
             clip.open(audioStream);
 
             clip.addLineListener(event -> {
-                if (event.getType() == LineEvent.Type.STOP && !isPaused) {
+                if (event.getType() == LineEvent.Type.STOP && state == PlayerState.PLAYING) {
                     resetClip();
                     if (onSongFinished != null) {
                         onSongFinished.run();
@@ -49,27 +52,35 @@ public class MusicPlayer {
             });
 
             clip.start();
-            isPaused = false;
-
-        } catch (IOException | LineUnavailableException | UnsupportedAudioFileException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Error al reproducir: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            state = PlayerState.PLAYING;
         }
     }
 
     public void pause() {
-        if (clip != null && clip.isRunning()) {
-            pausePosition = clip.getMicrosecondPosition();
-            clip.stop();
-            isPaused = true;
+        synchronized (lock) {
+            if (clip != null && state == PlayerState.PLAYING) {
+                pausePosition = clip.getMicrosecondPosition();
+                clip.stop();
+                state = PlayerState.PAUSED;
+            }
+        }
+    }
+
+    public void resume() {
+        synchronized (lock) {
+            if (clip != null && state == PlayerState.PAUSED) {
+                clip.setMicrosecondPosition(pausePosition);
+                clip.start();
+                state = PlayerState.PLAYING;
+            }
         }
     }
 
     public void stop() {
-        resetClip();
-        isPaused = false;
-        pausePosition = 0;
-        currentFile = null;
+        synchronized (lock) {
+            resetClip();
+            state = PlayerState.STOPPED;
+        }
     }
 
     public void resetClip() {
@@ -78,24 +89,37 @@ public class MusicPlayer {
             clip.close();
             clip = null;
         }
+        pausePosition = 0;
+        state = PlayerState.STOPPED;
     }
 
     public boolean isPlaying() {
-        return clip != null && clip.isRunning();
+        return state == PlayerState.PLAYING;
     }
-
+    
+    public PlayerState getState() {
+        return state;
+    }
+    
     public long getCurrentPosition() {
-        if (clip != null) {
-            return clip.getMicrosecondPosition();
+        synchronized (lock) {
+            if (clip != null && clip.isOpen()) {
+                return clip.getMicrosecondPosition();
+            } else {
+                return pausePosition;
+            }
         }
-        return 0;
     }
 
     public long getTotalLength() {
-        if (clip != null) {
+        if (clip != null && clip.isOpen()) {
             return clip.getMicrosecondLength();
+        } else {
+            return 0;
         }
-        return 0;
     }
 
+    public File getCurrentFile() {
+        return currentFile;
+    }
 }

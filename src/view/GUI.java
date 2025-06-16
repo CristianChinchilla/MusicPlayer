@@ -284,27 +284,72 @@ public class GUI extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void playButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_playButtonActionPerformed
-        int selectedRow = songTable.getSelectedRow();
-
-        if (selectedRow >= 0) {
+        playButton.setEnabled(false);
+        try {
+            int selectedRow = songTable.getSelectedRow();
+            
+            if (selectedRow < 0) {
+                JOptionPane.showMessageDialog(this, "Seleccione una canción primero.", "Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
             currentSongIndex = selectedRow;
             String filePath = (String) songTable.getValueAt(selectedRow, 3);
             File songFile = new File(filePath);
-
-            if (playButton.getIcon() == playIcon) {
-                player.play(songFile);
-                playButton.setIcon(pauseIcon);
-                playButton.setToolTipText("Pausar");
-                progressTimer.start();
-            } else {
-                player.pause();
-                playButton.setIcon(playIcon);
-                playButton.setToolTipText("Reproducir");
-                progressTimer.stop();
+            
+            switch (player.getState()) {
+                case STOPPED:
+                    player.play(songFile);
+                    playButton.setIcon(pauseIcon);
+                    progressTimer.start();
+                    break;
+                
+                case PLAYING:
+                    player.pause();
+                    playButton.setIcon(playIcon);
+                    progressTimer.stop();
+                    break;
+                    
+                case PAUSED:
+                    if (songFile.equals(player.getCurrentFile())) {
+                        player.resume();
+                        playButton.setIcon(pauseIcon);
+                        progressTimer.start();
+                    } else {
+                        player.play(songFile);
+                        playButton.setIcon(pauseIcon);
+                        progressTimer.start();
+                    }
             }
-        } else {
-            JOptionPane.showMessageDialog(this, "Seleccione una canción primero.", "Error", JOptionPane.WARNING_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            player.stop();
+            playButton.setIcon(playIcon);
+        } finally {
+            playButton.setEnabled(true);
         }
+
+//        int selectedRow = songTable.getSelectedRow();
+//
+//        if (selectedRow >= 0) {
+//            currentSongIndex = selectedRow;
+//            String filePath = (String) songTable.getValueAt(selectedRow, 3);
+//            File songFile = new File(filePath);
+//
+//            if (playButton.getIcon() == playIcon) {
+//                player.play(songFile);
+//                playButton.setIcon(pauseIcon);
+//                playButton.setToolTipText("Pausar");
+//                progressTimer.start();
+//            } else {
+//                player.pause();
+//                playButton.setIcon(playIcon);
+//                playButton.setToolTipText("Reproducir");
+//                progressTimer.stop();
+//            }
+//        } else {
+//            JOptionPane.showMessageDialog(this, "Seleccione una canción primero.", "Error", JOptionPane.WARNING_MESSAGE);
+//        }
 
     }//GEN-LAST:event_playButtonActionPerformed
 
@@ -354,9 +399,7 @@ public class GUI extends javax.swing.JFrame {
 
     private void stopButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_stopButtonActionPerformed
         player.stop();
-        if (playButton.getIcon() == pauseIcon) {
-            playButton.setIcon(playIcon);
-        }
+        playButton.setIcon(playIcon);
         progressTimer.stop();
         songProgressBar.setValue(0);
         songProgressBar.setString("00:00 / " + formatTime(player.getTotalLength()));
@@ -398,6 +441,7 @@ public class GUI extends javax.swing.JFrame {
                     playButton.setToolTipText("Reproducir");
                     progressTimer.stop();
                     songProgressBar.setValue(0);
+                    songProgressBar.setString("00:00 / " + formatTime(player.getTotalLength()));
                     currentSongIndex = -1;
                 }
 
@@ -439,13 +483,20 @@ public class GUI extends javax.swing.JFrame {
         if (currentSongIndex >= 0 && currentSongIndex < playlist.getSongs().size()) {
             String filePath = (String) songTable.getValueAt(currentSongIndex, 3);
             File songFile = new File(filePath);
-
-            player.play(songFile);
-            playButton.setIcon(pauseIcon);
-            playButton.setToolTipText("Pausar");
-            songProgressBar.setValue(0);
-            songProgressBar.setString("00:00 / " + formatTime(player.getTotalLength()));
-            progressTimer.restart();
+            
+            try {
+                player.play(songFile);
+                playButton.setIcon(pauseIcon);
+                playButton.setToolTipText("Pausar");
+                songProgressBar.setValue(0);
+                songProgressBar.setString("00:00 / " + formatTime(player.getTotalLength()));
+                progressTimer.restart();
+                
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                player.stop();
+                playButton.setIcon(playIcon);
+            }
         }
     }
 

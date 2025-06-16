@@ -6,7 +6,8 @@ package controller;
 
 /**
  *
- * @author cchin
+ * @author José Daniel Segura Menjivar - C4J929
+ * @author Cristian Chinchilla Fonseca - C4E360
  */
 public enum PlayerState {
     STOPPED,

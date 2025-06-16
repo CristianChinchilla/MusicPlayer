@@ -8,7 +8,8 @@ import controller.PlayerState;
 
 /**
  *
- * @author cchin
+ * @author José Daniel Segura Menjivar - C4J929
+ * @author Cristian Chinchilla Fonseca - C4E360
  */
 public class MusicPlayer {
 
@@ -26,9 +27,6 @@ public class MusicPlayer {
     public void play(File file) throws IOException, LineUnavailableException, UnsupportedAudioFileException {
 
         synchronized (lock) {
-            
-            //if (state == PlayerState.PLAYING) return;
-
             if (state == PlayerState.PAUSED && file.equals(currentFile)) {
                 resume();
                 return;

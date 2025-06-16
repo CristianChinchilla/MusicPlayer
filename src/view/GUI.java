@@ -4,6 +4,7 @@
  */
 package view;
 
+import controller.MusicPlayer;
 import javax.swing.table.DefaultTableModel;
 import model.Song;
 import controller.Playlist;
